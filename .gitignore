@@ -2,6 +2,8 @@ config/root_path.py
 
 result/*
 
+wrong_img/*
+
 wandb/*
 
 del_img.ipynb
