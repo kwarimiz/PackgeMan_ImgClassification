@@ -8,6 +8,11 @@ wandb/*
 
 del_img.ipynb
 
+get_result.ipynb
+
+test.ipynb
+
+
 nohup.out
 
 # 忽略所有的 __pycache__ 文件夹
