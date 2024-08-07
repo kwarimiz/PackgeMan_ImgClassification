@@ -1,0 +1,9 @@
+config/root_path.py
+
+result/*
+
+wandb/*
+
+del_img.ipynb
+
+nohup.out
