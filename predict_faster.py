@@ -1,4 +1,5 @@
 import os
+import time
 import torch
 from sklearn.metrics import accuracy_score
 import torch.distributed.launch
@@ -50,36 +51,45 @@ def get_weight_path(metric):
 weight_path = get_weight_path(args.weight)
 net.load_state_dict(torch.load(weight_path))
 
-
 true_labels = []
 predicted_labels = []
 top3_predicted_labels = []
 class_num = len(test_dataset.class_to_idx)
 
 net.eval()
+start_time = time.time()
 with torch.no_grad():
     for images, labels in tqdm(test_loader):
         outputs = net(images)
         _, predicted = torch.max(outputs, 1)
         _, top3_predicted = outputs.topk(3, 1, True, True)
 
-        true_labels.extend(labels.cpu().numpy())
-        predicted_labels.extend(predicted.cpu().numpy())
-        top3_predicted_labels.extend(top3_predicted.cpu().numpy())
+         # 使用 accelerate 收集预测和标签
+        all_predictions, all_labels = accelerator.gather_for_metrics((predicted, labels))
+        all_top3_predicted = accelerator.gather_for_metrics(top3_predicted)
+
+        true_labels.extend(all_labels.cpu().numpy())
+        predicted_labels.extend(all_predictions.cpu().numpy())
+        top3_predicted_labels.extend(all_top3_predicted.cpu().numpy())
+
+if accelerator.is_main_process:
+    end_time = time.time()
+    print(f'Inference Time: {end_time - start_time}')
+
 
 # 计算 Top-1 精确率
 top1_accuracy = accuracy_score(true_labels, predicted_labels)
-print("Top-1 Accuracy:", top1_accuracy)
+accelerator.print("Top-1 Accuracy:", top1_accuracy)
 
 # 计算 Top-3 精确率
 # 需要将 top3_predicted_labels 转换为每个样本的 top-3 列表
 top3_lists = np.array(top3_predicted_labels).reshape(-1, 3)
 top3_accuracy = top_k_accuracy(true_labels, top3_lists, 3)
-print("Top-3 Accuracy:", top3_accuracy)
+accelerator.print("Top-3 Accuracy:", top3_accuracy)
 
 save_cm(true_labels, predicted_labels, class_num, class_to_idx,result_folder)
 
 df,per_df= performance(
     result_folder,true_labels, predicted_labels,class_num,class_to_idx,top1_accuracy,top3_accuracy)
-print(f'{df}\n')
-print(per_df)
+accelerator.print(f'{df}\n')
+accelerator.print(per_df)
