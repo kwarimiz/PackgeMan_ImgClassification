@@ -6,17 +6,18 @@ from torchvision.datasets import ImageFolder
 from PIL import Image
 
 class DataHandler:
-    def __init__(self, root_path, batch_size, nw,net):
+    def __init__(self, root_path, batch_size, nw,net,sapmler):
         self.root_path = root_path
         self.batch_size = batch_size
         self.nw = nw
         self.net = net
+        self.sapmler = sapmler
         if self.net == 'maxvit':
             resize_num = 224
         elif self.net == 'swin':
             resize_num = 256
         else:
-            resize_num = 152
+            resize_num = 224
         self.data_transform = {
             "train": transforms.Compose([
                 transforms.CenterCrop(256),
@@ -44,14 +45,18 @@ class DataHandler:
         # Create samplers
         self.train_sampler = WeightedRandomSampler(self.sample_weights, num_samples=len(self.sample_weights), replacement=True)
 
-
-        self.train_loader = DataLoader(self.train_dataset, 
-                                batch_size=self.batch_size, 
-                                # shuffle=True, 
-                                num_workers=self.nw,
-                                sampler=self.train_sampler
-                                )
-        
+        if self.sapmler =='weight':
+            self.train_loader = DataLoader(self.train_dataset, 
+                                    batch_size=self.batch_size, 
+                                    num_workers=self.nw,
+                                    sampler=self.train_sampler
+                                    )
+        else:
+            self.train_loader = DataLoader(self.train_dataset, 
+                                    batch_size=self.batch_size, 
+                                    shuffle=True, 
+                                    num_workers=self.nw
+                                    )
 
         self.val_loader = DataLoader(self.val_dataset,
                                     batch_size = batch_size,

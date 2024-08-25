@@ -27,6 +27,7 @@ device =torch.device('cuda:0')
 class ModelEvaluator:
     def __init__(
         self, 
+        dataset_name: str,
         result_folder: str , 
         loader_type:  str,
         data_root: str = DATA_ROOT, 
@@ -34,11 +35,11 @@ class ModelEvaluator:
         nw: int = 8, 
         device = torch.device('cuda:0'), 
         gpu_num: int =8,
-        weight: str ='best'
+        weight: str ='loss'
     ):
         self.result_folder = result_folder
         self.loader_type = loader_type
-        self.data_root = data_root
+        self.root_path = os.path.join(data_root,dataset_name)
         self.batch_size = batch_size
         self.nw = nw
         self.device = device
@@ -49,14 +50,18 @@ class ModelEvaluator:
 
     def get_data_loader(self, loader_type):
         if loader_type == 'test':               # 只取测试集
-            data_loader = DataHandler(self.data_root, self.batch_size, self.nw,self.model_name)
+            data_loader = DataHandler(self.root_path,
+                                      self.batch_size, 
+                                      self.nw,
+                                      self.model_name,
+                                      None)
             val_dataset = data_loader.test_dataset
             val_loader = data_loader.test_loader
         elif loader_type == 'del_img':          # 取所有数据集和数据集的图片名
-            val_dataset = GetNameDataset(os.path.join(self.data_root, 'total'))
+            val_dataset = GetNameDataset(os.path.join(self.root_path, 'total'))
             val_loader = DataLoader(val_dataset,
                                     batch_size=self.batch_size,
-                                    shuffle=True,
+                                    # shuffle=True,
                                     num_workers=self.nw)
         return val_dataset, val_loader
 
@@ -219,6 +224,7 @@ def show_acc_loss(result_folder,epoch_num:None):
     plt.show()
 
 def performance(
+        result_root,
         result_folder,
         true_labels,
         predicted_labels,
@@ -254,15 +260,15 @@ def performance(
         'F1 Score': f1
 }
     performance_df = pd.DataFrame(performance_data)
-    performance_df.to_latex(f'result/{result_folder}/performance.tex', index=False)
+    performance_df.to_latex(f'{result_root}/{result_folder}/performance.tex', index=False)
     # 创建混淆矩阵 DataFrame
     cm_df = pd.DataFrame(cm, index=[k for k in class_to_idx], columns=[k for k  in class_to_idx])
-    cm_df.to_csv(f'result/{result_folder}/confusion_matrix.csv')
+    cm_df.to_csv(f'{result_root}/{result_folder}/confusion_matrix.csv')
     # 创建 DataFrame
     df = pd.DataFrame(data)
     df.loc[len(df)]=['Top-1 Accuracy',top1_accuracy,'']
     df.loc[len(df)]=['Top-3 Accuracy',top3_accuracy,'']
-    df.to_latex(f'result/{result_folder}/macro_micro.tex', index=False)
+    df.to_latex(f'{result_root}/{result_folder}/macro_micro.tex', index=False)
     return df,performance_df
     
 
@@ -282,7 +288,13 @@ def top_k_accuracy(true_labels, predicted_labels, k):
             top_k_correct += 1
     return top_k_correct / len(true_labels)
 
-def save_cm(true_labels, predicted_labels, class_num, class_to_idx,result_folder):
+def save_cm(result_root,
+            true_labels, 
+            predicted_labels,
+            class_num, 
+            class_to_idx,
+            result_folder):
+    
     cm = confusion_matrix(true_labels, predicted_labels, labels=range(class_num))
     fig, ax = plt.subplots(figsize=(11,11))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
@@ -301,6 +313,6 @@ def save_cm(true_labels, predicted_labels, class_num, class_to_idx,result_folder
     plt.xticks(fontsize=8.5)
     # plt.subplots_adjust(bottom=0.2, top=0.9, left=0.2, right=0.8)
 
-    plt.savefig(f'result/{result_folder}/confusion_matrix.png',dpi=320)
+    plt.savefig(f'{result_root}/{result_folder}/confusion_matrix.png',dpi=320)
     plt.show()
 

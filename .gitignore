@@ -1,6 +1,6 @@
 config/root_path.py
 
-result/*
+result*/
 
 wrong_img/*
 
@@ -11,6 +11,12 @@ del_img.ipynb
 get_result.ipynb
 
 test.ipynb
+
+run_predict.sh
+
+run_training.sh
+
+predict_time.csv
 
 
 nohup.out

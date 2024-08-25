@@ -1,0 +1,1 @@
+accelerate launch --num_processes=4 predict_faster.py -r [result_folder] --result_root [result_root]

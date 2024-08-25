@@ -1,0 +1,1 @@
+nohup accelerate launch --num_processes=4  train_wandb.py  -n [net] -r [result_folder] > ./nohup.out &
