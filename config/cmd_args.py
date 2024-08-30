@@ -16,6 +16,6 @@ def parse_args():
     parser.add_argument('-o', '--optimizer', type=str, metavar='', help='the optimizer', default='Adam')
     parser.add_argument('-s', '--scheduler', type=str, metavar='', help='the scheduler', default='Cos')
     parser.add_argument('--sampler', type=str, metavar='', help='the dataloader sampler', default=None)
-    parser.add_argument('--result_root', type=str, metavar='', help='the root path to save result', default='result_pretrain')
+    parser.add_argument('--result_root', type=str, metavar='', help='the root path to save result', default='result_lora')
 
     return parser.parse_args()

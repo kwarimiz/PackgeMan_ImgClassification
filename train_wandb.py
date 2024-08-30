@@ -38,7 +38,7 @@ config = {
 }
 accelerator = Accelerator(log_with="wandb")
 
-accelerator.init_trackers(project_name='pretrain_model',
+accelerator.init_trackers(project_name='lora_model',
                           config=config
                           )
 

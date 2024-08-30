@@ -16,6 +16,7 @@ run_predict.sh
 
 run_training.sh
 
+run_train_predict.sh
 predict_time.csv
 
 

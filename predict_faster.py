@@ -13,7 +13,7 @@ import argparse
 parser = argparse.ArgumentParser(description='预测脚本参数')
 parser.add_argument('-r','--result_folder',type=str,metavar='',help='the path to save result')
 parser.add_argument('-w','--weight',type=str,metavar='',help='the weight name',default='loss')
-parser.add_argument('--result_root',type=str,metavar='',help='the root path to save result',default='result_pretrain')
+parser.add_argument('--result_root',type=str,metavar='',help='the root path to save result',default='result_lora')
 parser.add_argument('-b','--batch_size',type=int,metavar='',help='the batch size',default=256)
 parser.add_argument('-n','--net',type=str,metavar='',help='the net name',default=None)
 args = parser.parse_args()
