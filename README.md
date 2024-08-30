@@ -8,3 +8,13 @@
 
 提供了单卡和多卡的方式，高效完成训练和推理
 所有的pytorch代码已经被封装好，你只需要成为一个无情的调包侠
+
+This repository includes everything needed for image classification. You just need to prepare your data and you can start training with a single line of script.
+
+You can easily switch between models, optimizers, loss functions, etc., by making only minimal changes to the script, without frequently modifying the code. From simple CNNs to complex transformers.
+
+You can easily view misclassified images, compare their correct and incorrect labels, and analyze them to improve results. All experimental processes and results will be recorded on a webpage, allowing for clear comparisons.
+
+The repository supports both single-card and multi-card modes for efficient training and inference. 
+
+All PyTorch code is encapsulated, so you only need to be a packge man with pre-built components.
