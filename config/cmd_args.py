@@ -17,5 +17,6 @@ def parse_args():
     parser.add_argument('-s', '--scheduler', type=str, metavar='', help='the scheduler', default='Cos')
     parser.add_argument('--sampler', type=str, metavar='', help='the dataloader sampler', default=None)
     parser.add_argument('--result_root', type=str, metavar='', help='the root path to save result', default='result_lora')
+    parser.add_argument('--gpu_num', type=int, metavar='', help='the number of gpu', default=1)
 
     return parser.parse_args()
