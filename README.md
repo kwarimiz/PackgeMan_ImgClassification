@@ -1,7 +1,9 @@
 
 # **做个调包侠，把图像分类流程化繁为简！**
 
-本仓库为你提供了一个全面的图像分类工具包，你只需要准备好数据，即可通过一行脚本开启训练。无论是模型、优化器还是损失函数的选择，你都可以在不频繁修改代码的情况下，轻松切换配置。从简单的 CNN 到复杂的 Transformer，这里应有尽有。
+本仓库为你提供了一个全面的图像分类工具包，你只需要准备好数据，即可通过一行脚本开启训练。
+
+无论是模型、优化器还是损失函数的选择，你都可以在不频繁修改代码的情况下，轻松切换配置。从简单的 CNN 到复杂的 Transformer，这里应有尽有。
 
 你可以方便地查看被错误分类的图像，比较它们的正确标签和错误标签，从而进行分析和改进。所有的实验过程和结果都将记录在网页上，你可以清晰地对比分析。
 
@@ -17,7 +19,7 @@ pip install -r requirements.txt
 
 ## **数据准备**
 
-按照 PyTorch DataLoader 的方式组织数据：
+按照 PyTorch ImageFolder 的方式组织数据：
 
 ```
 --data root
@@ -82,7 +84,9 @@ pip install -r requirements.txt
 
 # **Be a Package Man , Simplify Your Image Classification Workflow!**
 
-This repository provides everything you need for image classification. Just prepare your data, and you can start training with a single script. You can switch models, optimizers, loss functions, and more by making minimal changes to the script without frequently modifying the code. From simple CNNs to complex Transformers, it’s all here.
+This repository provides everything you need for image classification. Just prepare your data, and you can start training with a single script. 
+
+You can switch models, optimizers, loss functions, and more by making minimal changes to the script without frequently modifying the code. From simple CNNs to complex Transformers, it’s all here.
 
 Easily view misclassified images, compare their correct and incorrect labels, and make informed analyses to improve results. All your experiments and results are logged on a web interface, allowing for clear comparisons.
 
@@ -98,7 +102,7 @@ pip install -r requirements.txt
 
 ## **Data Preparation**
 
-Organize your data according to the PyTorch DataLoader format:
+Organize your data according to the PyTorch ImageFolder format:
 
 ```
 --data root
