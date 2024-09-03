@@ -3,115 +3,61 @@
 import os
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from torchvision import transforms, datasets
-from torch.utils.data import DataLoader
-import torchvision.models as models
-from models import resnet34
+from models.model import get_model
 import torch.distributed.launch
-import argparse
 import pickle
-from modules.focal_loss import FocalLoss
-from config.root_path import DATA_ROOT
+from config.root_path import DATA_ROOT,WEIGHT_ROOT
 import time
+from config.cmd_args import parse_args
 device =torch.device('cuda:0')
+from modules.train_utils import DataHandler
+from modules.train_component import get_optimizer,get_loss_function
 
+args = parse_args()
 
-parser = argparse.ArgumentParser(description='命令行参数')
-parser.add_argument('-e','--epoch',type=int,metavar='',help='the number of epoch',default=100)
-parser.add_argument('-d','--dataset',type=str,metavar='',help='the name of dataset')
-parser.add_argument('-b','--batch_size',type=int,metavar='',help='the number of batch size',default=128)
-parser.add_argument('-g','--gpu_num',type=int,metavar='',help='the number of gpu',default=8)
-parser.add_argument('-n','--net',type=str,metavar='',help='network',default='resnet34')
-parser.add_argument('-l','--loss_function',type=str,metavar='',help='loss function',default='CrossEntropyLoss')
-parser.add_argument('-r','--result_folder',type=str,metavar='',help='the path to save result')
-
-args = parser.parse_args()
-
-root_path = os.path.join(DATA_ROOT,args.dataset)
-
-print(f'Loss function = {args.loss_function}')
-
-data_transform = {
-        "train": transforms.Compose([transforms.CenterCrop(256),
-                                     transforms.Resize(152),
-                                     transforms.RandomHorizontalFlip(),
-                                     transforms.ToTensor(),
-                                     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-                                    ]),
-        "val": transforms.Compose([
-                                   transforms.CenterCrop(256),
-                                   transforms.Resize(152),
-                                   transforms.ToTensor(),
-                                   transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-                                   ])
-                }
-
+data_root = os.path.join(DATA_ROOT,args.dataset)
 batch_size = args.batch_size
 gpu_num = args.gpu_num
 lr = 0.0001
 nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
 print('Using {} dataloader workers every process\n'.format(nw))
 
+# load data
+data_loader = DataHandler(data_root,batch_size,nw,args.net,args.sampler)
 
-train_dataset = datasets.ImageFolder(os.path.join(root_path,'train'),
-                                     transform=data_transform['train'])
+train_loader, val_loader = data_loader.train_loader, data_loader.val_loader
 
-train_loader = DataLoader(train_dataset,
-                          batch_size = batch_size,                         
-                          shuffle=True,
-                          num_workers = nw)
-
-val_dataset = datasets.ImageFolder(os.path.join(root_path,'val'),
-                                   transform=data_transform['val'])
-val_loader = DataLoader(val_dataset,
-                        batch_size = batch_size,
-                        shuffle=False,
-                        num_workers = nw)
-
+val_dataset = data_loader.get_val_dataset()
+val_len = len(val_dataset)
 
 print(f'val_dataset length = {len(val_dataset)}')
 print(f'class = {val_dataset.class_to_idx}\n')
 
-net = resnet34()
+net = get_model(args.net,len(val_dataset.class_to_idx),args.weight)
+loss_function = get_loss_function(args.loss_function)
+optimizer = get_optimizer(args.optimizer,net,lr)
 
-latest_weight = f'./result/{args.result_folder}/pth/latest_8gpu.pth'
-best_weight = f'./result/{args.result_folder}/pth/best_8gpu.pth'
-best_acc_path = f'./result/{args.result_folder}/pth/best_8gpu.txt'
+# define save path
 
+weight_root = os.path.join(WEIGHT_ROOT,args.result_folder)
 
-if not os.path.isfile(latest_weight):
-    weight_path = 'pth/resnet34.pth'
-    net.load_state_dict(torch.load(weight_path))
-    print('weight = resnet34\n')
+def get_weight_path(metric):
+    weight_pth = os.path.join(weight_root,f'best_{metric}.pth')
+    return weight_pth
 
-inchannel = net.fc.in_features
-net.fc = nn.Linear(inchannel,len(val_dataset.class_to_idx))# the number of class
+best_acc_weight = get_weight_path('acc')
+
+latest_weight = os.path.join(weight_root,f'latest.pth')
+
+best_score_path = os.path.join(weight_root,'best_score.csv')
+
 
 net.to(device)
-
-if args.loss_function == 'FocalLoss':
-    loss_function = FocalLoss()
-elif args.loss_function == 'CrossEntropyLoss':
-    loss_function = nn.CrossEntropyLoss()
-
-optimizer = optim.Adam(net.parameters(),lr = lr)
 
 
 net = nn.DataParallel(net,device_ids=list( range(gpu_num) ) )
 
 
-if  os.path.isfile(best_weight):
-    weight_path = best_weight
-    net.load_state_dict(torch.load(weight_path))
-    print('weight = best\n')
-
-
-with open(best_acc_path) as f:
-    best_acc = f.read()
-
-best_acc = float(best_acc)
-save_path = f'result/{args.result_folder}/pth/best_{gpu_num}gpu.pth'
 
 train_loss_list = []
 val_acc_list = []
@@ -157,7 +103,7 @@ def train(args, train_loader, val_loader, net, optimizer, loss_function, device)
     best_acc = 0.0
     time_list = []
 
-    for epoch in range(args.epoch):
+    for epoch in range(args.start_epoch,args.end_epoch):
         print(f'Epoch:{epoch+1}')
         net.train()
         running_loss, train_time = train_epoch(epoch, train_loader, net, optimizer, loss_function, device)
@@ -174,9 +120,9 @@ def train(args, train_loader, val_loader, net, optimizer, loss_function, device)
         # 保存模型
         if val_acc > best_acc:
             best_acc = val_acc
-            torch.save(net.state_dict(), save_path)
+            torch.save(net.state_dict(), best_acc_weight)
 
-            with open(best_acc_path, 'w') as f:
+            with open(best_score_path, 'w') as f:
                 f.write(str(val_acc))
 
         torch.save(net.state_dict(), latest_weight)
@@ -193,10 +139,9 @@ def train(args, train_loader, val_loader, net, optimizer, loss_function, device)
         total_time = sum(time_list)/60
         print(f"Total time :    {total_time:.2f} min\n")
                 
-    
-
 
 if __name__ == "__main__":
 
     train(args, train_loader, val_loader, net, optimizer, loss_function, device)
     print('train over')
+    
