@@ -8,7 +8,7 @@
 我们提供了单卡和多卡的训练和推理方式，高效完成任务。所有 PyTorch 代码都已封装好，你只需要成为一个无情的调包侠！
 
 ## **安装**
-
+进入你的python虚拟环境
 使用以下命令安装所需依赖：
 
 ```bash
@@ -44,7 +44,7 @@ pip install -r requirements.txt
 
 - **单卡训练：**
   ```bash
-  python train_wandb.py -n [net] -r [result_folder]
+  python train.py -n [net] -r [result_folder]
   ```
 
 - **多卡训练：**
@@ -60,7 +60,7 @@ pip install -r requirements.txt
 
 ## **评估**
 
-在 `predict.ipynb` 中调用 `evaluator`，可以查看混淆矩阵等各类指标。
+在 `predict.ipynb` 中调用 `evaluator`，查看混淆矩阵等各类指标。分析被错误分类的图像
 
 ## **推理**
 
@@ -69,7 +69,7 @@ pip install -r requirements.txt
 
 - **多卡推理：**
   ```bash
-  accelerate launch --num_processes=4 predict_faster.py -r [result_folder] --result_root [result_root]
+  accelerate launch --num_processes=[gpu numbers] predict_faster.py -r [result_folder] --result_root [result_root]
   ```
 
 ## **日志记录**
@@ -80,8 +80,6 @@ pip install -r requirements.txt
 
 
 
----
-
 # **Be a Package Man , Simplify Your Image Classification Workflow!**
 
 This repository provides everything you need for image classification. Just prepare your data, and you can start training with a single script. You can switch models, optimizers, loss functions, and more by making minimal changes to the script without frequently modifying the code. From simple CNNs to complex Transformers, it’s all here.
@@ -91,7 +89,7 @@ Easily view misclassified images, compare their correct and incorrect labels, an
 We offer both single-GPU and multi-GPU training and inference options, ensuring efficient execution. All PyTorch code is pre-packaged, so you just need to be a relentless package tinkerer!
 
 ## **Installation**
-
+Enter your python environment
 Install the required dependencies with the following command:
 
 ```bash
@@ -127,7 +125,7 @@ Define your dataset root directory `DATA_ROOT` and weights storage directory `WE
 
 - **Single-GPU Training:**
   ```bash
-  python train_wandb.py -n [net] -r [result_folder]
+  python train.py -n [net] -r [result_folder]
   ```
 
 - **Multi-GPU Training:**
@@ -152,7 +150,7 @@ Use `evaluator` in `predict.ipynb` to view confusion matrices and various metric
 
 - **Multi-GPU Inference:**
   ```bash
-  accelerate launch --num_processes=4 predict_faster.py -r [result_folder] --result_root [result_root]
+  accelerate launch --num_processes=[gpu numbers] predict_faster.py -r [result_folder] --result_root [result_root]
   ```
 
 ## **Logging**
