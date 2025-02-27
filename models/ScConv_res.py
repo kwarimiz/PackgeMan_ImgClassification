@@ -100,10 +100,25 @@ class CRU(nn.Module):
         out1,out2 = torch.split(out,out.size(1)//2,dim=1)
         return out1+out2
 
+class DepthwiseSeparableConv(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=2, padding=1):
+        super(DepthwiseSeparableConv, self).__init__()
+        # 深度卷积: 每个输入通道独立卷积
+        self.depthwise = nn.Conv2d(in_channels, in_channels, kernel_size=kernel_size, 
+                                   stride=stride, padding=padding, groups=in_channels)
+        # 逐点卷积: 用于整合通道信息
+        self.pointwise = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1)
+        
+    def forward(self, x):
+        x = self.depthwise(x)
+        x = self.pointwise(x)
+        return x
 
 class ScConv(nn.Module):
     def __init__(self,
+                in_channel:int,
                 op_channel:int,
+                stride:int,
                 group_num:int = 4,
                 gate_treshold:float = 0.5,
                 alpha:float = 1/2,
@@ -112,6 +127,13 @@ class ScConv(nn.Module):
                 group_kernel_size:int = 3,
                  ):
         super().__init__()
+
+        self.stride = stride
+        self.DSC = DepthwiseSeparableConv(in_channel, 
+                                          op_channel, 
+                                          kernel_size=3, 
+                                          stride=2, 
+                                          padding=1)
         self.SRU = SRU( op_channel, 
                        group_num            = group_num,  
                        gate_treshold        = gate_treshold )
@@ -120,11 +142,17 @@ class ScConv(nn.Module):
                        squeeze_radio        = squeeze_radio ,
                        group_size           = group_size ,
                        group_kernel_size    = group_kernel_size )
-    
+        
     def forward(self,x):
+        if self.stride == 2:
+            x = self.DSC(x)
         x = self.SRU(x)
         x = self.CRU(x)
+
         return x
+
+
+
 
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     """1x1 convolution"""

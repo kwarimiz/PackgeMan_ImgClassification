@@ -21,6 +21,8 @@ from tqdm import tqdm
 from models.model import get_model
 from modules.train_utils import DataHandler,GetNameDataset
 from config.root_path import DATA_ROOT,WEIGHT_ROOT
+import numpy as np
+from PIL import Image
 
 device =torch.device('cuda:0')
 
@@ -63,6 +65,14 @@ class ModelEvaluator:
                                     batch_size=self.batch_size,
                                     # shuffle=True,
                                     num_workers=self.nw)
+        elif loader_type == 'val':               # 取验证集
+            data_loader = DataHandler(self.root_path,
+                                      self.batch_size, 
+                                      self.nw,
+                                      self.model_name,
+                                      None)
+            val_dataset = data_loader.total_dataset
+            val_loader = data_loader.total_loader
         return val_dataset, val_loader
 
     def load_model(self,model_name=None):
@@ -86,7 +96,7 @@ class ModelEvaluator:
     
     def evaluate(self):
         net = self.load_model()
-        if self.loader_type == 'test':
+        if self.loader_type == 'test' or self.loader_type == 'val':
             true_labels = []
             predicted_labels = []
             top3_predicted_labels = []
@@ -128,6 +138,7 @@ class ModelEvaluator:
                             wrong_img.append((img_name[i], wrong_class, true_class))
 
             return wrong_img,class_dict
+        
 
 def del_wrong_img(batch,total_path,wrong_img_savepath):
     

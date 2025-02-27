@@ -12,7 +12,7 @@ class DataHandler:
         self.nw = nw
         self.net = net
         self.sapmler = sapmler
-        if self.net == 'maxvit':
+        if net.startswith('maxvit'):
             resize_num = 224
         elif self.net == 'swin':
             resize_num = 256
@@ -38,27 +38,44 @@ class DataHandler:
         self.val_dataset = datasets.ImageFolder(os.path.join(root_path ,'val'),
                                    transform=self.data_transform['val'])
         
+        self.total_dataset = datasets.ImageFolder(os.path.join(root_path ,'total'),
+                                   transform=self.data_transform['val'])
+        
         # Compute weights for each class
-        class_weights = self.compute_class_weights(self.train_dataset)
+        class_weights = self.compute_class_weights(self.train_dataset,alpha=0.8)
         self.sample_weights = [class_weights[label] for _, label in self.train_dataset.samples]
 
+        
         # Create samplers
-        self.train_sampler = WeightedRandomSampler(self.sample_weights, num_samples=len(self.sample_weights), replacement=True)
+        self.train_sampler = WeightedRandomSampler(self.sample_weights, 
+                                                   num_samples=len(self.sample_weights), 
+                                                   replacement=True)
 
         if self.sapmler =='weight':
             self.train_loader = DataLoader(self.train_dataset, 
                                     batch_size=self.batch_size, 
                                     num_workers=self.nw,
-                                    sampler=self.train_sampler
+                                    sampler=self.train_sampler,
+                                    pin_memory=True,
+                                    persistent_workers=True
                                     )
         else:
             self.train_loader = DataLoader(self.train_dataset, 
                                     batch_size=self.batch_size, 
                                     shuffle=True, 
-                                    num_workers=self.nw
+                                    num_workers=self.nw,
+                                    pin_memory=True,
+                                    persistent_workers=True
                                     )
 
         self.val_loader = DataLoader(self.val_dataset,
+                                    batch_size = batch_size,
+                                    shuffle=False,
+                                    num_workers = nw,
+                                    pin_memory=True,
+                                    persistent_workers=True)
+        
+        self.total_loader = DataLoader(self.total_dataset,
                                     batch_size = batch_size,
                                     shuffle=False,
                                     num_workers = nw)
@@ -72,7 +89,7 @@ class DataHandler:
                                     num_workers = nw)
         
     
-    def compute_class_weights(self, dataset):
+    def compute_class_weights(self,dataset,alpha=0.8):
         # Count each class
         class_count = [0] * len(dataset.classes)
         for _, index in dataset.samples:
@@ -81,7 +98,19 @@ class DataHandler:
         # Compute weight for each class (inverse frequency)
         total_count = sum(class_count)
         class_weights = [total_count / count for count in class_count]
-        
+
+
+        # Compute smoothed weights
+        smoothed_weights = {
+            cls: (alpha * weight) + (1 - alpha) * (total_count / len(class_count))
+            for cls, weight in zip(range(len(class_weights)), class_weights)
+        }
+
+        # Normalize weights
+        max_weight = max(smoothed_weights.values())
+        normalized_weights = {cls: weight / max_weight for cls, weight in smoothed_weights.items()}
+
+        return normalized_weights
         # # Normalize weights (optional)
         # max_weight = max(class_weights)
         # class_weights = [weight / max_weight for weight in class_weights]
@@ -107,7 +136,7 @@ class GetNameDataset(ImageFolder):
         img = self.loader(img_path)
         transform = transforms.Compose([
                 transforms.CenterCrop(256),
-                transforms.Resize(152),
+                transforms.Resize(224),
                 transforms.ToTensor(),
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])

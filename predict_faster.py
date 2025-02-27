@@ -10,16 +10,17 @@ from models.model import get_model
 from modules.train_utils import DataHandler
 from modules.predict_utils import performance,top_k_accuracy,save_cm
 import argparse
+
 parser = argparse.ArgumentParser(description='预测脚本参数')
 parser.add_argument('-r','--result_folder',type=str,metavar='',help='the path to save result')
 parser.add_argument('-w','--weight',type=str,metavar='',help='the weight name',default='loss')
-parser.add_argument('--result_root',type=str,metavar='',help='the root path to save result',default='result_lora')
-parser.add_argument('-b','--batch_size',type=int,metavar='',help='the batch size',default=256)
+parser.add_argument('--result_root',type=str,metavar='',help='the root path to save result',default='result_custom')
+parser.add_argument('-b','--batch_size',type=int,metavar='',help='the batch size',default=32)
 parser.add_argument('-n','--net',type=str,metavar='',help='the net name',default=None)
 args = parser.parse_args()
-
 from config.root_path import DATA_ROOT,WEIGHT_ROOT
-
+import logging
+logging.basicConfig(level=logging.WARNING)
 accelerator = Accelerator()
 device = accelerator.device
 
@@ -27,10 +28,12 @@ dataset_name = '8_class_select'
 data_root = os.path.join(DATA_ROOT,dataset_name)
 
 batch_size = args.batch_size
-gpu_num = accelerator.state.num_processes
+# gpu_num = accelerator.state.num_processes
+gpu_num = 8
 nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
 accelerator.print('Using {} dataloader workers every process'.format(nw))
 
+# load dataset
 if args.net is None:
     net_name = args.result_folder.split('_')[0]
 else:
@@ -44,20 +47,27 @@ accelerator.print(f'val_len: {len(test_dataset)}')
 result_root = args.result_root
 result_folder = args.result_folder
 
+# load model
 
 net =get_model(net_name,len(test_dataset.class_to_idx))
 
-net,test_loader = accelerator.prepare(net,test_loader)
 
-weight_root =os.path.join(WEIGHT_ROOT,result_folder)
+net,test_loader= accelerator.prepare(net,test_loader)
+
 
 def get_weight_path(metric):
-    weight_pth = os.path.join(weight_root,f'best_{metric}.pth')
+    if metric == 'latest':
+        weight_pth = os.path.join(WEIGHT_ROOT,result_folder,'latest.pth')
+        
+    else:
+        weight_pth = os.path.join(WEIGHT_ROOT,result_folder,f'best_{metric}.pth')
     return weight_pth
 
 weight_path = get_weight_path(args.weight)
-net.load_state_dict(torch.load(weight_path))
-
+state_dict = torch.load(weight_path,map_location=device)
+ 
+ 
+net.load_state_dict(state_dict)
 true_labels = []
 predicted_labels = []
 top3_predicted_labels = []

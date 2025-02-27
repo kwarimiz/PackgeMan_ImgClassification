@@ -1,7 +1,9 @@
 import torch.nn as nn
 import torchvision.models as models
-from models.ScConv import modify_resnet18,modify_resnet34,modify_resnet50
-
+from models.ScConv_res import modify_resnet18,modify_resnet34,modify_resnet50
+from models.maxvit_flash import maxvit_t_flash
+from models.maxvit_fused import maxvit_t_fused
+# 
 def get_model(model_name:str, num_classes:int,weights=None):
 
     if model_name == 'vgg16':
@@ -92,6 +94,14 @@ def get_model(model_name:str, num_classes:int,weights=None):
         net.classifier[1]=nn.Linear(1280,num_classes)
 
 # Customized Models
+
+    elif model_name == 'maxvit_flash':
+        net = maxvit_t_flash()
+        net.classifier[5]=nn.Linear(512, num_classes)
+    elif model_name == 'maxvit_fused':
+        net = maxvit_t_fused()
+        net.classifier[5]=nn.Linear(512, num_classes)
+    
     elif model_name == 'ScConv18':
         net = modify_resnet18() 
         in_features = net.fc.in_features
@@ -132,5 +142,6 @@ def get_model(model_name:str, num_classes:int,weights=None):
         net = modify_resnet34() # 不写的话，无参数
         in_features = net.fc.in_features
         net.fc = nn.Linear(in_features,num_classes)
-
+        
+    print(f'*******{model_name} loaded *******')
     return net
