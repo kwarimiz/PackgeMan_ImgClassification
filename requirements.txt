@@ -53,7 +53,7 @@ nvidia-nvjitlink-cu12==12.4.127
 nvidia-nvtx-cu12==12.4.127
 pandas==2.2.3
 pandocfilters==1.5.1
-pillow==11.1.0
+pillow>=12.3.0
 pipreqs==0.5.0
 protobuf==5.29.3
 pydantic==2.10.6
